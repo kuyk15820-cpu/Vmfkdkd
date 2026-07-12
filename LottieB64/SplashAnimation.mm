@@ -48,7 +48,8 @@
             NSError *error = nil;
             NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
             if (jsonDict) {
-                self.animationView = [CompatibleAnimationView animationFromJSON:jsonDict];
+                self.animationView = [[CompatibleAnimationView alloc] initWithDictionary:jsonDict];
+
             }
         }
 
@@ -56,7 +57,9 @@
             self.animationView.frame = CGRectMake(0, 0, 200, 200);
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
             self.animationView.contentMode = UIViewContentModeScaleAspectFit;
-            self.animationView.loopAnimation = NO;
+
+self.animationView.loopMode = LottieLoopModePlayOnce;
+
             [self.hudContainer addSubview:self.animationView];
         }
 
