@@ -55,8 +55,7 @@
         if (self.animationView) {
             self.animationView.frame = CGRectMake(0, 0, 200, 200);
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
-            self.animationView.contentMode = UIViewContentModeScaleAspectFit;
-            self.animationView.loopAnimationCount = 1;
+            self.animationView.contentMode = UIViewContentModeScaleAspectFit;            
             self.animationView.backgroundMode = CompatibleBackgroundBehaviorPauseAndRestore;
 
             [self.hudContainer addSubview:self.animationView];
@@ -96,26 +95,12 @@
                 if (completion) completion();
                 return;
             }
+            self.animationView.loopAnimationCount = (CGFloat)count;
 
-            __block NSInteger remainingRounds = count;
-            __block void (^playRecursive)(void);
-            __weak __block void (^weakPlayRecursive)(void);
-            
-            playRecursive = ^{
-                [self.animationView playWithCompletion:^(BOOL finished) {
-                    remainingRounds--;
-                    if (remainingRounds > 0) {
-                        if (weakPlayRecursive) weakPlayRecursive();
-                    } else {
-                        [self hide];
-                        if (completion) completion();
-                        playRecursive = nil; 
-                    }
-                }];
-            };
-
-            weakPlayRecursive = playRecursive;
-            playRecursive();
+            [self.animationView playWithCompletion:^(BOOL finished) {
+                [self hide];
+                if (completion) completion();
+            }];
         });
     });
 }
