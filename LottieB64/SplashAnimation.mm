@@ -48,7 +48,7 @@
             NSError *error = nil;
             NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
             if (jsonDict) {
-                self.animationView = [LOTAnimationView animationFromJSON:jsonDict];
+                self.animationView = [CompatibleAnimationView animationFromJSON:jsonDict];
             }
         }
 
