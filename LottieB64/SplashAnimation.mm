@@ -1,17 +1,17 @@
 #import "SplashAnimation.h"
 #import "si.h"
 
-// 🟢 สร้าง Subclass เล็กๆ ขึ้นมาเพื่อดักจังหวะตอนแอปสลับกลับมาหน้าจอโดยเฉพาะ
-@interface LottieActiveView : CompatibleAnimationView
+// 🟢 สร้าง Custom View สำหรับ hudContainer เพื่อดักจับจังหวะการวาดหน้าจอใหม่ตอนกลับเข้าแอป
+@interface SplashHUDContainer : UIView
+@property (nonatomic, weak) CompatibleAnimationView *attachedAnimationView;
 @end
 
-@implementation LottieActiveView
-// เมื่อแอปกลับมาเปิด (Foreground) ตัววิวจะถูกวาดใหม่บน Window อีกครั้ง
-- (void)didMoveToWindow {
-    [super didMoveToWindow];
-    if (self.window && self.isAnimationPlaying == NO) {
-        // สั่งให้เล่นต่อทันทีจากเฟรมเดิมอย่างนุ่มนวล
-        [self play];
+@implementation SplashHUDContainer
+- (void)drawRect:(CGRect)rect {
+    [super drawRect:rect];
+    // ทันทีที่แอปกลับมาแสดงผล (Foreground) และมีการวาดวิวใหม่ ถ้าแอนิเมชันหยุดอยู่ ให้สั่งเล่นต่อจากจุดเดิม
+    if (self.attachedAnimationView && self.attachedAnimationView.isAnimationPlaying == NO) {
+        [self.attachedAnimationView play];
     }
 }
 @end
@@ -54,18 +54,20 @@
             return;
         }
 
-        self.hudContainer = [[UIView alloc] initWithFrame:window.bounds];
-        self.hudContainer.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.6];
-        self.hudContainer.userInteractionEnabled = YES;
-        self.hudContainer.alpha = 0.0;
+        // 🟢 เปลี่ยนมาใช้คลาส container ดักจับแทนตัววิวเดิม
+        SplashHUDContainer *container = [[SplashHUDContainer alloc] initWithFrame:window.bounds];
+        container.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.6];
+        container.userInteractionEnabled = YES;
+        container.alpha = 0.0;
+        self.hudContainer = container;
 
         NSData *data = [[NSData alloc] initWithBase64EncodedString:cv options:0];
         if (data) {
             NSError *error = nil;
             NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
             if (jsonDict) {
-                // 🟢 เปลี่ยนมาใช้คลาสดักจับความเคลื่อนไหวที่เราสร้างไว้ด้านบน
-                self.animationView = [[LottieActiveView alloc] initWithData:data];
+                // เรียกใช้คลาสเดิมตามปกติ ไม่ฝืน subclass ให้ติดเออร์เรอร์คอมไพล์
+                self.animationView = [[CompatibleAnimationView alloc] initWithData:data];
             }
         }
 
@@ -74,11 +76,14 @@
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
             self.animationView.contentMode = UIViewContentModeScaleAspectFit;
             
-            // 🛑 เปลี่ยนเป็น Pause (หยุดไว้เมื่อพับแอป) เพื่อตัดขาดตัวสร้างอนิเมชันเบิ้ลของ Swift
+            // ใช้ Pause เพื่อหยุดการสร้างลูปจำลองฝั่ง Swift ตอนพับแอป
             self.animationView.backgroundMode = CompatibleBackgroundBehaviorPause;
             self.animationView.loopAnimationCount = 1;
 
             [self.hudContainer addSubview:self.animationView];
+            
+            // ผูกความสัมพันธ์ให้ออนเนอร์ container รู้จักตัวแอนิเมชันเพื่อคุมงานต่อ
+            container.attachedAnimationView = self.animationView;
         }
 
         [window addSubview:self.hudContainer];
@@ -126,7 +131,7 @@
                     
                     if (isCompleted) return;
                     
-                    // ป้องกันการลักไก่ปิดหน้าจอขณะแอปกำลังพับอยู่เบื้องหลัง
+                    // ป้องกันลักไก่ปิดหน้าจอขณะที่ตัวแอปยังไม่ได้กลับขึ้นมาเบื้องหน้าแบบเต็มร้อย
                     if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
                         return;
                     }
