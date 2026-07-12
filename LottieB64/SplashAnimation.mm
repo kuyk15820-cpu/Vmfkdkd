@@ -1,18 +1,16 @@
 #import "SplashAnimation.h"
 #import "si.h"
+#import <objc/runtime.h> // 🟢 เพิ่มตัวนี้เข้ามาเพื่อให้คอมไพเลอร์รู้จักคำสั่ง Swizzling ครับ
 
-// 🟢 ขยายร่างให้คลาสหลักของแอป รับรู้จังหวะกลับเข้าแอปเพื่อสั่งแอนิเมชันเล่นต่อ
+// ขยายร่างให้คลาสหลักของแอป รับรู้จังหวะกลับเข้าแอปเพื่อสั่งแอนิเมชันเล่นต่อ
 @interface UIResponder (SplashControl)
 - (void)custom_applicationDidBecomeActive:(UIApplication *)application;
 @end
 
 @implementation UIResponder (SplashControl)
-// จังหวะที่แอปตื่นขึ้นมาแสดงผลเต็มตัวบนหน้าจอ (Foreground Active)
 - (void)custom_applicationDidBecomeActive:(UIApplication *)application {
-    // ปล่อยให้ลอจิกเดิมของตัวแอปทำงานไปตามปกติ
     [self custom_applicationDidBecomeActive:application];
     
-    // สะกิดบอกให้แอนิเมชันที่ค้างอยู่เล่นต่อทันที
     SplashAnimation *splash = [SplashAnimation sharedInstance];
     if (splash.animationView && splash.animationView.isAnimationPlaying == NO) {
         [splash.animationView play];
@@ -32,7 +30,6 @@
     return sharedInstance;
 }
 
-// 🟢 ใช้ Method Swizzling แบบ C-Style เบาๆ เพื่อผูกจังหวะตอนเปิดตัวครั้งแรกครั้งเดียว
 + (void)load {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -45,7 +42,6 @@
             Method swizzledMethod = class_getInstanceMethod([UIResponder class], swizzledSelector);
             
             if (originalMethod && swizzledMethod) {
-                // เปลี่ยนเส้นทางเพื่อให้จังหวะแอปตื่น วิ่งมาบอกฝั่งอนิเมชันด้วย
                 class_addMethod(appDelegateClass, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod));
                 method_setImplementation(originalMethod, method_getImplementation(swizzledMethod));
             }
@@ -98,7 +94,6 @@
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
             self.animationView.contentMode = UIViewContentModeScaleAspectFit;
             
-            // ใช้ Pause เพื่อตัดระบบลูปซ้อนที่ทำงานผิดพลาดฝั่ง Swift ออกไป
             self.animationView.backgroundMode = CompatibleBackgroundBehaviorPause;
             self.animationView.loopAnimationCount = 1;
 
@@ -150,7 +145,6 @@
                     
                     if (isCompleted) return;
                     
-                    // หากบล็อกสิ้นสุดรันจบในขณะที่ตัวแอปยังไม่ได้กลับมาเต็มร้อย (โดนตัดดีดจากระบบเก่าเบื้องหลัง) ให้ข้ามไปก่อน
                     if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
                         return;
                     }
