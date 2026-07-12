@@ -57,7 +57,8 @@
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
             self.animationView.contentMode = UIViewContentModeScaleAspectFit;
             
-            // 🟢 ใช้คุณสมบัติ Native ตามคู่มือ: พับแอปแล้วแอนิเมชันจะรอ และมาเล่นต่อเองเมื่อกลับเข้าแอป
+            // ใช้ความสามารถในการจำเฟรมเดิมเมื่อเปิดแอปกลับมา
+            self.animationView.loopAnimationCount = 1;
             self.animationView.backgroundMode = CompatibleBackgroundBehaviorPauseAndRestore;
 
             [self.hudContainer addSubview:self.animationView];
@@ -98,14 +99,34 @@
                 return;
             }
 
-            // 🟢 กำหนดรอบการเล่นให้ตัวแปรต้นทาง (เช่น ส่งมา 1 รอบ ล็อตตี้จะนับ 1 รอบ)
-            self.animationView.loopAnimationCount = (CGFloat)count;
+            // 🟢 ตัวแปรดักจับสถานะ เพื่อให้โค้ดส่วนจบทำงานได้แค่ "ครั้งเดียว" เท่านั้น
+            __block BOOL isCompleted = NO;
+            __block NSInteger remainingRounds = count;
+            __block void (^playRecursive)(void);
+            __weak __block void (^weakPlayRecursive)(void);
+            
+            playRecursive = ^{
+                [self.animationView playWithCompletion:^(BOOL finished) {
+                    
+                    // 🛑 ถ้าระบบเคยรันจบไปแล้ว หรือหลุดเข้ามาทำงานซ้ำ ให้ดีดออกทันที
+                    if (isCompleted) return;
+                    
+                    remainingRounds--;
+                    if (remainingRounds > 0) {
+                        if (weakPlayRecursive) weakPlayRecursive();
+                    } else {
+                        // 🟢 ล็อกสถานะทันทีเมื่อเล่นครบตามรอบจริง เพื่อสกัดกั้นการเรียกซ้ำซ้อนจาก Lottie บั๊ก
+                        isCompleted = YES;
+                        
+                        [self hide];
+                        if (completion) completion();
+                        playRecursive = nil; 
+                    }
+                }];
+            };
 
-            // 🟢 สั่ง Play เพียงครั้งเดียวโดยตรง ไม่ใช้บล็อก Recursive วนลูปเองให้ชนกับระบบเบื้องหลัง
-            [self.animationView playWithCompletion:^(BOOL finished) {
-                [self hide];
-                if (completion) completion();
-            }];
+            weakPlayRecursive = playRecursive;
+            playRecursive();
         });
     });
 }
