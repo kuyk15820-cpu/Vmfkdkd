@@ -49,8 +49,6 @@
             NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
             if (jsonDict) {
                 self.animationView = [[CompatibleAnimationView alloc] initWithData:data];
-
-
             }
         }
 
@@ -58,8 +56,8 @@
             self.animationView.frame = CGRectMake(0, 0, 200, 200);
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
             self.animationView.contentMode = UIViewContentModeScaleAspectFit;
-
-self.animationView.loopAnimationCount = 1; 
+            self.animationView.loopAnimationCount = 1;
+            self.animationView.backgroundMode = CompatibleBackgroundBehaviorPauseAndRestore;
 
             [self.hudContainer addSubview:self.animationView];
         }
