@@ -6,7 +6,7 @@
 @interface SplashAnimation : NSObject
 
 @property (nonatomic, strong) UIView *hudContainer;
-@property (nonatomic, strong) LOTAnimationView *animationView;
+@property (nonatomic, strong) CompatibleAnimationView *animationView; 
 @property (nonatomic, strong) UIWindow *targetWindow; 
 
 + (instancetype)sharedInstance;
