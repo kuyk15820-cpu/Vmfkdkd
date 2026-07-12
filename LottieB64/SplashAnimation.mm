@@ -55,7 +55,9 @@
         if (self.animationView) {
             self.animationView.frame = CGRectMake(0, 0, 200, 200);
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
-            self.animationView.contentMode = UIViewContentModeScaleAspectFit;            
+            self.animationView.contentMode = UIViewContentModeScaleAspectFit;
+            
+            // 🟢 ใช้คุณสมบัติ Native ตามคู่มือ: พับแอปแล้วแอนิเมชันจะรอ และมาเล่นต่อเองเมื่อกลับเข้าแอป
             self.animationView.backgroundMode = CompatibleBackgroundBehaviorPauseAndRestore;
 
             [self.hudContainer addSubview:self.animationView];
@@ -95,8 +97,11 @@
                 if (completion) completion();
                 return;
             }
+
+            // 🟢 กำหนดรอบการเล่นให้ตัวแปรต้นทาง (เช่น ส่งมา 1 รอบ ล็อตตี้จะนับ 1 รอบ)
             self.animationView.loopAnimationCount = (CGFloat)count;
 
+            // 🟢 สั่ง Play เพียงครั้งเดียวโดยตรง ไม่ใช้บล็อก Recursive วนลูปเองให้ชนกับระบบเบื้องหลัง
             [self.animationView playWithCompletion:^(BOOL finished) {
                 [self hide];
                 if (completion) completion();
