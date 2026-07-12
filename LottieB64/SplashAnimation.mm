@@ -1,6 +1,22 @@
 #import "SplashAnimation.h"
 #import "si.h"
 
+// 🟢 สร้าง Subclass เล็กๆ ขึ้นมาเพื่อดักจังหวะตอนแอปสลับกลับมาหน้าจอโดยเฉพาะ
+@interface LottieActiveView : CompatibleAnimationView
+@end
+
+@implementation LottieActiveView
+// เมื่อแอปกลับมาเปิด (Foreground) ตัววิวจะถูกวาดใหม่บน Window อีกครั้ง
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    if (self.window && self.isAnimationPlaying == NO) {
+        // สั่งให้เล่นต่อทันทีจากเฟรมเดิมอย่างนุ่มนวล
+        [self play];
+    }
+}
+@end
+
+
 @implementation SplashAnimation
 
 + (instancetype)sharedInstance {
@@ -48,7 +64,8 @@
             NSError *error = nil;
             NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
             if (jsonDict) {
-                self.animationView = [[CompatibleAnimationView alloc] initWithData:data];
+                // 🟢 เปลี่ยนมาใช้คลาสดักจับความเคลื่อนไหวที่เราสร้างไว้ด้านบน
+                self.animationView = [[LottieActiveView alloc] initWithData:data];
             }
         }
 
@@ -57,9 +74,9 @@
             self.animationView.center = CGPointMake(window.bounds.size.width / 2, window.bounds.size.height / 2);
             self.animationView.contentMode = UIViewContentModeScaleAspectFit;
             
-            // ใช้ความสามารถในการจำเฟรมเดิมเมื่อเปิดแอปกลับมา
+            // 🛑 เปลี่ยนเป็น Pause (หยุดไว้เมื่อพับแอป) เพื่อตัดขาดตัวสร้างอนิเมชันเบิ้ลของ Swift
+            self.animationView.backgroundMode = CompatibleBackgroundBehaviorPause;
             self.animationView.loopAnimationCount = 1;
-            self.animationView.backgroundMode = CompatibleBackgroundBehaviorPauseAndRestore;
 
             [self.hudContainer addSubview:self.animationView];
         }
@@ -99,7 +116,6 @@
                 return;
             }
 
-            // 🟢 ตัวแปรดักจับสถานะ เพื่อให้โค้ดส่วนจบทำงานได้แค่ "ครั้งเดียว" เท่านั้น
             __block BOOL isCompleted = NO;
             __block NSInteger remainingRounds = count;
             __block void (^playRecursive)(void);
@@ -108,16 +124,18 @@
             playRecursive = ^{
                 [self.animationView playWithCompletion:^(BOOL finished) {
                     
-                    // 🛑 ถ้าระบบเคยรันจบไปแล้ว หรือหลุดเข้ามาทำงานซ้ำ ให้ดีดออกทันที
                     if (isCompleted) return;
+                    
+                    // ป้องกันการลักไก่ปิดหน้าจอขณะแอปกำลังพับอยู่เบื้องหลัง
+                    if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
+                        return;
+                    }
                     
                     remainingRounds--;
                     if (remainingRounds > 0) {
                         if (weakPlayRecursive) weakPlayRecursive();
                     } else {
-                        // 🟢 ล็อกสถานะทันทีเมื่อเล่นครบตามรอบจริง เพื่อสกัดกั้นการเรียกซ้ำซ้อนจาก Lottie บั๊ก
                         isCompleted = YES;
-                        
                         [self hide];
                         if (completion) completion();
                         playRecursive = nil; 
